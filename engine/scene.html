@@ -1,0 +1,315 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<style>
+:root{
+  --bg:#F4F1EC; --ink:#1C1E21; --sub:#7A7670; --accent:#D6583A; --accent2:#2F7D6B; --rule:#D6D0C7;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:720px;height:1280px;overflow:hidden;background:var(--bg)}
+body{font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;-webkit-font-smoothing:antialiased}
+#stage{position:relative;width:720px;height:1280px;overflow:hidden}
+
+.blob{position:absolute;border-radius:50%;filter:blur(48px);opacity:.5}
+#b1{width:520px;height:520px;background:#F3D9CF}
+#b2{width:440px;height:440px;background:#D9E8E2}
+#b3{width:300px;height:300px;background:#EFE2C8}
+#grain{position:absolute;inset:0;opacity:.05;background-image:radial-gradient(#000 1px,transparent 1px);background-size:3px 3px}
+
+#dots{position:absolute;top:64px;left:56px;display:flex;gap:8px}
+.dot{width:44px;height:5px;border-radius:3px;background:var(--rule)}
+.dot.on{background:var(--accent)}
+
+#char{position:absolute;left:50%;top:430px;transform-origin:50% 100%}
+#char svg{display:block}
+
+#counter{position:absolute;left:0;right:0;top:250px;text-align:center;
+  font-weight:900;font-size:150px;letter-spacing:-.03em;color:var(--ink);
+  font-variant-numeric:tabular-nums;opacity:0}
+#counter .unit{font-size:56px;margin-left:8px;color:var(--sub)}
+
+#bars{position:absolute;left:56px;right:56px;top:300px;opacity:0}
+.barrow{display:flex;align-items:center;gap:16px;margin-bottom:26px}
+.barlabel{width:132px;font-size:30px;font-weight:700;color:var(--ink);text-align:right}
+.bartrack{flex:1;height:44px;background:#E6E0D7;border-radius:6px;overflow:hidden}
+.barfill{height:100%;width:0;border-radius:6px;background:var(--accent2)}
+.barrow.hi .barfill{background:var(--accent)}
+.barval{width:96px;font-size:28px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+
+#telop{position:absolute;left:44px;right:44px;bottom:196px}
+#telopbar{background:rgba(28,30,33,.92);border-radius:10px;padding:26px 30px;
+  box-shadow:0 12px 34px rgba(0,0,0,.18)}
+#telopbar p{color:#F6F4F0;font-size:40px;font-weight:700;line-height:1.5;letter-spacing:.01em}
+.ch{opacity:0;display:inline-block}
+.ch.k{color:#FFB08C}
+
+#pop{position:absolute;left:0;right:0;top:640px;text-align:center;opacity:0}
+#pop span{display:inline-block;background:var(--accent);color:#fff;font-size:62px;font-weight:900;
+  padding:14px 30px;border-radius:12px;transform:rotate(-2deg);box-shadow:0 10px 26px rgba(214,88,58,.32)}
+
+#prop{position:absolute;left:0;right:0;top:180px;height:440px;display:flex;align-items:center;justify-content:center;opacity:0}
+#cards{display:flex;gap:22px;align-items:stretch}
+.card{width:190px;background:#FBF8F3;border:4px solid var(--ink);border-radius:16px;padding:22px 18px;
+  display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 24px rgba(0,0,0,.10);opacity:0}
+.card .ct{font-size:26px;font-weight:800;color:var(--sub)}
+.card .cv{font-size:52px;font-weight:900;color:var(--ink);line-height:1.1}
+.card.hi{background:var(--accent);border-color:var(--accent)}
+.card.hi .ct{color:#FFD9CB} .card.hi .cv{color:#fff}
+#checklist{display:flex;flex-direction:column;gap:18px}
+.cli{display:flex;align-items:center;gap:16px;opacity:0}
+.cli .box{width:44px;height:44px;border:4px solid var(--ink);border-radius:8px;position:relative;flex:none;background:#FBF8F3}
+.cli .box:after{content:"";position:absolute;left:11px;top:4px;width:16px;height:28px;
+  border:solid var(--accent);border-width:0 6px 6px 0;transform:rotate(45deg) scale(0);transform-origin:center}
+.cli.on .box:after{transform:rotate(45deg) scale(1)}
+.cli .lb{font-size:34px;font-weight:800;color:var(--ink)}
+.cli.on .lb{color:var(--sub);text-decoration:line-through}
+#handle{position:absolute;left:56px;bottom:96px;font-size:26px;font-weight:800;color:var(--accent);letter-spacing:.02em}
+</style></head><body>
+<div id="stage">
+  <div class="blob" id="b1"></div><div class="blob" id="b2"></div><div class="blob" id="b3"></div>
+  <div id="grain"></div>
+  <div id="dots"></div>
+
+  <div id="counter"><span id="cnum">0</span><span class="unit" id="cunit"></span></div>
+
+  <div id="bars"></div>
+
+  <!-- ビートごとに差し替わる「見せ物」レイヤー -->
+  <div id="prop">
+    <svg id="tl" width="230" height="440" viewBox="0 0 230 440" style="display:none">
+      <rect x="14" y="14" width="202" height="412" rx="26" fill="#2A2E31" stroke="#1C1E21" stroke-width="5"/>
+      <circle id="tlA" cx="115" cy="106" r="52" fill="#3A3F43"/>
+      <circle id="tlB" cx="115" cy="220" r="52" fill="#3A3F43"/>
+      <circle id="tlC" cx="115" cy="334" r="52" fill="#3A3F43"/>
+    </svg>
+    <svg id="sw" width="440" height="200" viewBox="0 0 440 200" style="display:none">
+      <rect id="swBox" x="10" y="10" width="420" height="180" rx="18" fill="#22B14C" stroke="#1C1E21" stroke-width="5"/>
+      <text id="swTxt" x="220" y="118" text-anchor="middle" font-size="52" font-weight="900" fill="#fff">緑</text>
+    </svg>
+    <div id="cards" style="display:none"></div>
+    <div id="checklist" style="display:none"></div>
+  </div>
+
+  <div id="char">
+    <svg width="300" height="330" viewBox="0 0 300 330">
+      <ellipse id="shadow" cx="150" cy="316" rx="82" ry="12" fill="#1C1E21" opacity=".1"/>
+      <g id="body">
+        <path d="M150 300 C96 300 78 264 84 224 C90 186 116 168 150 168 C184 168 210 186 216 224 C222 264 204 300 150 300 Z" fill="#E9E3D8" stroke="#1C1E21" stroke-width="5"/>
+        <g id="armL"><path d="M92 216 C64 226 54 248 58 266" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/></g>
+        <g id="armR"><path d="M208 216 C236 226 246 248 242 266" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/></g>
+      </g>
+      <g id="head">
+        <path d="M150 32 C110 32 84 62 84 102 C84 142 112 168 150 168 C188 168 216 142 216 102 C216 62 190 32 150 32 Z" fill="#FBF7F0" stroke="#1C1E21" stroke-width="5"/>
+        <path d="M120 40 C128 22 150 16 164 26" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/>
+        <ellipse id="eyeL" cx="126" cy="106" rx="8" ry="10" fill="#1C1E21"/>
+        <ellipse id="eyeR" cx="174" cy="106" rx="8" ry="10" fill="#1C1E21"/>
+        <path id="mouth" d="M138 132 Q150 142 162 132" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/>
+        <ellipse cx="107" cy="124" rx="11" ry="7" fill="#F0B9A6" opacity=".75"/>
+        <ellipse cx="193" cy="124" rx="11" ry="7" fill="#F0B9A6" opacity=".75"/>
+      </g>
+      <text id="mark" x="236" y="54" font-size="56" font-weight="900" fill="#D6583A" opacity="0">!</text>
+    </svg>
+  </div>
+
+  <div id="pop"><span id="poptext"></span></div>
+  <div id="telop"><div id="telopbar"><p id="telopline"></p></div></div>
+  <div id="handle">@gude_aiai</div>
+</div>
+
+<script>
+const E={
+  out:p=>1-Math.pow(1-p,3),
+  outBack:p=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(p-1,3)+c1*Math.pow(p-1,2);},
+  inOut:p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2
+};
+const cl=x=>Math.max(0,Math.min(1,x));
+const seg=(t,a,b)=>cl((t-a)/(b-a));
+
+const BEATS = window.__BEATS__;
+const DUR = window.__DUR__;
+
+const dots=document.getElementById('dots');
+BEATS.forEach(()=>{const d=document.createElement('div');d.className='dot';dots.appendChild(d);});
+const dotEls=[...document.querySelectorAll('.dot')];
+
+const barsBox=document.getElementById('bars');
+const telopline=document.getElementById('telopline');
+let chars=[], lastBeat=-1;
+
+/* telop は {text, hi:[開始,終了]} 形式。hi の範囲だけ色を変える */
+function buildTelop(text, hiText){
+  telopline.innerHTML='';
+  const arr=[...text];
+  let a=-1,b=-1;
+  if(hiText){ const idx=text.indexOf(hiText); if(idx>=0){ a=[...text.slice(0,idx)].length; b=a+[...hiText].length; } }
+  arr.forEach((ch,i)=>{
+    const s=document.createElement('span');
+    const on = i>=a && i<b;
+    s.className='ch'+(on?' k':'');
+    s.textContent=ch;
+    telopline.appendChild(s);
+  });
+  return [...telopline.children];
+}
+
+function buildBars(rows){
+  barsBox.innerHTML='';
+  rows.forEach(r=>{
+    const row=document.createElement('div');
+    row.className='barrow'+(r.hi?' hi':'');
+    row.innerHTML='<div class="barlabel"></div><div class="bartrack"><div class="barfill"></div></div><div class="barval"></div>';
+    row.querySelector('.barlabel').textContent=r.label;
+    row.querySelector('.barval').textContent=r.val;
+    row.querySelector('.barfill').dataset.w=r.w;
+    barsBox.appendChild(row);
+  });
+}
+
+function seek(t){
+  document.getElementById('b1').style.transform='translate('+(60+Math.sin(t*.42)*46)+'px,'+(170+Math.cos(t*.31)*54)+'px)';
+  document.getElementById('b2').style.transform='translate('+(300+Math.cos(t*.36)*52)+'px,'+(760+Math.sin(t*.27)*46)+'px)';
+  document.getElementById('b3').style.transform='translate('+(430+Math.sin(t*.5+1)*40)+'px,'+(300+Math.cos(t*.44)*38)+'px)';
+
+  let bi=0; for(let i=0;i<BEATS.length;i++) if(t>=BEATS[i].t) bi=i;
+  const b=BEATS[bi];
+  const bEnd=(bi+1<BEATS.length)?BEATS[bi+1].t:DUR;
+  const span=bEnd-b.t;
+  const local=t-b.t;
+
+  dotEls.forEach((d,i)=>d.classList.toggle('on',i<=bi));
+
+  if(bi!==lastBeat){
+    chars=buildTelop(b.telop, b.hiText);
+    if(b.bars) buildBars(b.bars);
+    if(b.prop==='cards' && b.items){
+      const box=document.getElementById('cards'); box.innerHTML='';
+      b.items.forEach(it=>{
+        const d=document.createElement('div'); d.className='card'+(it.hi?' hi':'');
+        d.innerHTML='<div class="ct"></div><div class="cv"></div>';
+        d.querySelector('.ct').textContent=it.label; d.querySelector('.cv').textContent=it.value;
+        box.appendChild(d);
+      });
+    }
+    if(b.prop==='checklist' && b.items){
+      const box=document.getElementById('checklist'); box.innerHTML='';
+      b.items.forEach(it=>{
+        const d=document.createElement('div'); d.className='cli';
+        d.innerHTML='<div class="box"></div><div class="lb"></div>';
+        d.querySelector('.lb').textContent=(typeof it==='string'?it:it.label);
+        box.appendChild(d);
+      });
+    }
+    lastBeat=bi;
+  }
+
+  chars.forEach((c,i)=>{
+    const p=E.out(seg(local, i*0.028, i*0.028+0.26));
+    c.style.opacity=p;
+    c.style.transform='translateY('+((1-p)*16)+'px)';
+  });
+
+  const tb=document.getElementById('telopbar');
+  const tp=E.outBack(seg(local,0,0.42));
+  tb.style.transform='translateY('+((1-tp)*26)+'px) scale('+(0.97+0.03*tp)+')';
+  tb.style.opacity=Math.min(1,seg(local,0,0.2));
+
+  const bob=Math.sin(t*2.1)*7;
+  const hop=(local<0.5)?Math.sin(seg(local,0,0.5)*Math.PI)*20:0;
+  const sq=1+Math.sin(t*2.1)*0.02;
+  // 見せ物があるときはキャラを右下に寄せて小さくする
+  const asideT = b.prop ? E.out(seg(local,0.1,0.6)) : 1-E.out(seg(local,0.1,0.5));
+  const aside = b.prop ? asideT : 0;
+  const cx = 0 + aside*196, cy = 0 + aside*172, cs = 1 - aside*0.48;
+  document.getElementById('char').style.transform=
+    'translate(-50%,0) translate('+cx+'px,'+(cy+bob-hop)+'px) scale('+cs+') scaleY('+sq+') scaleX('+(2-sq)+')';
+  document.getElementById('shadow').setAttribute('rx', 82-(hop*0.9));
+  document.getElementById('shadow').setAttribute('opacity', 0.10-hop*0.0022);
+
+  const bp=(t%3.4);
+  const blink=(bp>3.15)?Math.abs(Math.sin((bp-3.15)/0.25*Math.PI)):0;
+  document.getElementById('eyeL').setAttribute('ry',10-9.2*blink);
+  document.getElementById('eyeR').setAttribute('ry',10-9.2*blink);
+
+  const sw=Math.sin(t*1.7)*9;
+  const aL=document.getElementById('armL'), aR=document.getElementById('armR');
+  aL.style.transformOrigin='92px 216px'; aL.style.transform='rotate('+(-sw)+'deg)';
+  aR.style.transformOrigin='208px 216px'; aR.style.transform='rotate('+sw+'deg)';
+
+  const talking=Math.abs(Math.sin(t*7))>0.5 && local<Math.min(1.8,span);
+  document.getElementById('mouth').setAttribute('d', talking?'M136 130 Q150 148 164 130':'M138 132 Q150 142 162 132');
+
+  const pop=document.getElementById('pop');
+  if(b.key){
+    document.getElementById('poptext').textContent=b.key;
+    const pp=E.outBack(seg(local,0.35,0.95));
+    pop.style.opacity=Math.min(1,seg(local,0.35,0.6))*(1-seg(local,span-0.4,span));
+    pop.style.transform='translateY('+((1-pp)*22)+'px) scale('+(0.7+0.3*pp)+')';
+    document.getElementById('mark').setAttribute('opacity', Math.min(1,seg(local,0.4,0.8)));
+  } else { pop.style.opacity=0; document.getElementById('mark').setAttribute('opacity',0); }
+
+  if(b.bars){
+    barsBox.style.opacity=E.out(seg(local,0.2,0.6));
+    [...document.querySelectorAll('.barfill')].forEach((f,i)=>{
+      const p=E.out(seg(local,0.4+i*0.18,1.5+i*0.18));
+      f.style.width=(parseFloat(f.dataset.w)*p)+'%';
+    });
+  } else barsBox.style.opacity=0;
+
+  // 見せ物レイヤー
+  const propBox=document.getElementById('prop');
+  const tlEl=document.getElementById('tl'), swEl=document.getElementById('sw');
+  const cardsEl=document.getElementById('cards'), clEl=document.getElementById('checklist');
+  tlEl.style.display='none'; swEl.style.display='none';
+  cardsEl.style.display='none'; clEl.style.display='none';
+  if(b.prop){
+    const pin=E.outBack(seg(local,0.15,0.75));
+    const pout=1-seg(local,span-0.35,span);
+    propBox.style.opacity=Math.min(1,seg(local,0.15,0.45))*pout;
+    propBox.style.transform='translateY('+((1-pin)*30)+'px) scale('+(0.82+0.18*pin)+')';
+    if(b.prop==='trafficlight'){
+      tlEl.style.display='block';
+      const lit=b.propArg||'C';
+      const on={A:'#E24B3A',B:'#E8C33B',C:'#22B14C'};
+      ['A','B','C'].forEach(k=>{
+        const el=document.getElementById('tl'+k);
+        if(k===lit){
+          // 緑 → 青緑 へじわじわ寄せて「実際の色」を見せる
+          const m=E.inOut(seg(local,1.0,2.6));
+          const g=[34,177,76], bl=[0,160,190];
+          const c2=g.map((v,i)=>Math.round(v+(bl[i]-v)*(b.propArg2==='morph'?m:0)));
+          el.setAttribute('fill','rgb('+c2.join(',')+')');
+          el.setAttribute('r', 52+Math.sin(t*3)*1.5);
+        } else { el.setAttribute('fill','#3A3F43'); el.setAttribute('r',52); }
+      });
+    } else if(b.prop==='swatch'){
+      swEl.style.display='block';
+      const m=E.inOut(seg(local,0.6,2.4));
+      const from=[34,177,76], to=[0,120,200];
+      const c2=from.map((v,i)=>Math.round(v+(to[i]-v)*m));
+      document.getElementById('swBox').setAttribute('fill','rgb('+c2.join(',')+')');
+      document.getElementById('swTxt').textContent = m>0.5 ? (b.propArg2||'青') : (b.propArg||'緑');
+    } else if(b.prop==='cards'){
+      cardsEl.style.display='flex';
+      [...cardsEl.children].forEach((el,i)=>{
+        const p=E.outBack(seg(local,0.3+i*0.34,1.0+i*0.34));
+        el.style.opacity=Math.min(1,seg(local,0.3+i*0.34,0.6+i*0.34));
+        el.style.transform='translateY('+((1-p)*30)+'px) scale('+(0.8+0.2*p)+') rotate('+((i-1)*1.4)+'deg)';
+      });
+    } else if(b.prop==='checklist'){
+      clEl.style.display='flex';
+      [...clEl.children].forEach((el,i)=>{
+        const p=E.out(seg(local,0.3+i*0.42,0.8+i*0.42));
+        el.style.opacity=p; el.style.transform='translateX('+((1-p)*-24)+'px)';
+        el.classList.toggle('on', local > 0.9+i*0.42);
+      });
+    }
+  } else propBox.style.opacity=0;
+
+  const c=document.getElementById('counter');
+  if(b.count!=null){
+    const p=E.inOut(seg(local,0.2,1.6));
+    c.style.opacity=E.out(seg(local,0.1,0.4));
+    document.getElementById('cnum').textContent=Math.round(b.count*p).toLocaleString('ja-JP');
+    document.getElementById('cunit').textContent=b.unit||'';
+  } else c.style.opacity=0;
+}
+window.seek=seek;
+</script></body></html>
