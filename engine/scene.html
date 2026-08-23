@@ -6,12 +6,19 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:720px;height:1280px;overflow:hidden;background:var(--bg)}
 body{font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;-webkit-font-smoothing:antialiased}
-#stage{position:relative;width:720px;height:1280px;overflow:hidden}
+#stage{position:relative;width:720px;height:1280px;overflow:hidden;background:var(--bg)}
+#cam{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform}
+
+/* ビートの変わり目の転換。#cam の外に置くのでカメラの影響を受けない */
+#trans{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#trFull{position:absolute;inset:0;opacity:0}
+#trBlocks{position:absolute;inset:0;display:flex;opacity:0}
+#trBlocks .tb{flex:1;background:var(--bg)}
 
 .blob{position:absolute;border-radius:50%;filter:blur(48px);opacity:.5}
-#b1{width:520px;height:520px;background:#F3D9CF}
-#b2{width:440px;height:440px;background:#D9E8E2}
-#b3{width:300px;height:300px;background:#EFE2C8}
+#b1{width:520px;height:520px;background:var(--blob1)}
+#b2{width:440px;height:440px;background:var(--blob2)}
+#b3{width:300px;height:300px;background:var(--blob3)}
 #grain{position:absolute;inset:0;opacity:.05;background-image:radial-gradient(#000 1px,transparent 1px);background-size:3px 3px}
 
 #dots{position:absolute;top:64px;left:56px;display:flex;gap:8px}
@@ -29,17 +36,32 @@ body{font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;-webkit-font-smoot
 #bars{position:absolute;left:56px;right:56px;top:300px;opacity:0}
 .barrow{display:flex;align-items:center;gap:16px;margin-bottom:26px}
 .barlabel{width:132px;font-size:30px;font-weight:700;color:var(--ink);text-align:right}
-.bartrack{flex:1;height:44px;background:#E6E0D7;border-radius:6px;overflow:hidden}
+.bartrack{flex:1;height:44px;background:var(--track);border-radius:6px;overflow:hidden}
 .barfill{height:100%;width:0;border-radius:6px;background:var(--accent2)}
 .barrow.hi .barfill{background:var(--accent)}
-.barval{width:96px;font-size:28px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+.barval{width:140px;font-size:27px;font-weight:700;color:var(--sub);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
 
 #telop{position:absolute;left:44px;right:44px;bottom:196px}
-#telopbar{background:rgba(28,30,33,.92);border-radius:10px;padding:26px 30px;
+#telop.pos-mid{bottom:auto;top:44%}
+#telop.pos-top{bottom:auto;top:150px}
+#telopbar{background:var(--barbg);border-radius:10px;padding:26px 30px;
   box-shadow:0 12px 34px rgba(0,0,0,.18)}
-#telopbar p{color:#F6F4F0;font-size:40px;font-weight:700;line-height:1.5;letter-spacing:.01em}
+#telopbar p{color:var(--barfg);font-size:40px;font-weight:700;line-height:1.5;letter-spacing:.01em}
 .ch{opacity:0;display:inline-block}
-.ch.k{color:#FFB08C}
+.ch.k{color:var(--kwbar)}
+
+/* 帯なし。地の色の縁取りで文字を浮かせる */
+#telop.st-plain #telopbar{background:none;box-shadow:none;padding:10px 4px}
+#telop.st-plain #telopbar p{color:var(--ink);font-size:46px;line-height:1.44;
+  text-shadow:0 0 14px var(--bg),0 0 28px var(--bg),0 3px 0 var(--bg)}
+#telop.st-plain .ch.k{color:var(--accent)}
+
+/* 左に太い罫。手順や締めに使う */
+#telop.st-rule #telopbar{background:none;box-shadow:none;border-left:8px solid var(--accent);
+  border-radius:0;padding:6px 4px 6px 26px}
+#telop.st-rule #telopbar p{color:var(--ink);text-shadow:0 0 12px var(--bg),0 0 24px var(--bg)}
+#telop.st-rule .ch.k{color:var(--accent2)}
 
 #pop{position:absolute;left:0;right:0;top:640px;text-align:center;opacity:0}
 #pop span{display:inline-block;background:var(--accent);color:#fff;font-size:62px;font-weight:900;
@@ -47,23 +69,61 @@ body{font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;-webkit-font-smoot
 
 #prop{position:absolute;left:0;right:0;top:180px;height:440px;display:flex;align-items:center;justify-content:center;opacity:0}
 #cards{display:flex;gap:22px;align-items:stretch}
-.card{width:190px;background:#FBF8F3;border:4px solid var(--ink);border-radius:16px;padding:22px 18px;
+.card{width:190px;background:var(--cardbg);border:4px solid var(--ink);border-radius:16px;padding:22px 18px;
   display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 24px rgba(0,0,0,.10);opacity:0}
 .card .ct{font-size:26px;font-weight:800;color:var(--sub)}
 .card .cv{font-size:52px;font-weight:900;color:var(--ink);line-height:1.1}
 .card.hi{background:var(--accent);border-color:var(--accent)}
 .card.hi .ct{color:#FFD9CB} .card.hi .cv{color:#fff}
+/* --- 見せ物レイヤー（追加分） --- */
+#phone{display:none;align-items:center;justify-content:center}
+.ph{width:284px;height:420px;border:6px solid var(--ink);border-radius:36px;background:var(--cardbg);
+  overflow:hidden;position:relative;box-shadow:0 12px 30px rgba(0,0,0,.12)}
+.ph:before{content:"";position:absolute;left:50%;margin-left:-45px;top:12px;width:90px;height:12px;
+  border-radius:8px;background:var(--ink);opacity:.85;z-index:2}
+.phlist{position:absolute;left:0;right:0;top:48px;display:flex;flex-direction:column;gap:12px;padding:0 16px}
+.phrow{height:58px;border-radius:10px;background:var(--track);display:flex;align-items:center;
+  padding:0 14px;font-size:22px;font-weight:700;color:var(--sub);flex:none}
+.phrow.hi{background:var(--accent);color:#fff}
+
+#cal{display:none;flex-direction:column;gap:14px;align-items:center}
+.calgrid{display:grid;grid-template-columns:repeat(7,60px);gap:10px}
+.cday{width:60px;height:60px;border-radius:12px;background:var(--track)}
+.cday.on{background:var(--accent2)}
+.cday.hi{background:var(--accent)}
+
+#flowbox{display:none;align-items:center;justify-content:center;gap:22px}
+.fbox{width:228px;min-height:154px;border:5px solid var(--ink);border-radius:18px;background:var(--cardbg);
+  display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;
+  font-size:30px;font-weight:800;color:var(--ink);line-height:1.35;white-space:pre-line}
+.fbox.hi{background:var(--accent);border-color:var(--accent);color:#fff}
+.farrow{font-size:60px;font-weight:900;color:var(--accent);transform-origin:left center}
+
+#babox{display:none;flex-direction:column;gap:20px;width:540px}
+.bapanel{border:5px solid var(--ink);border-radius:16px;padding:18px 22px;background:var(--cardbg);
+  display:flex;align-items:center;gap:16px;font-size:30px;font-weight:800;color:var(--ink)}
+.bapanel .tag{font-size:21px;padding:5px 14px;border-radius:999px;background:var(--ink);
+  color:var(--bg);flex:none}
+.bapanel.hi{background:var(--accent);border-color:var(--accent);color:#fff}
+.bapanel.hi .tag{background:#fff;color:var(--accent)}
+
 #checklist{display:flex;flex-direction:column;gap:18px}
 .cli{display:flex;align-items:center;gap:16px;opacity:0}
-.cli .box{width:44px;height:44px;border:4px solid var(--ink);border-radius:8px;position:relative;flex:none;background:#FBF8F3}
+.cli .box{width:44px;height:44px;border:4px solid var(--ink);border-radius:8px;position:relative;flex:none;background:var(--cardbg)}
 .cli .box:after{content:"";position:absolute;left:11px;top:4px;width:16px;height:28px;
   border:solid var(--accent);border-width:0 6px 6px 0;transform:rotate(45deg) scale(0);transform-origin:center}
 .cli.on .box:after{transform:rotate(45deg) scale(1)}
-.cli .lb{font-size:34px;font-weight:800;color:var(--ink)}
+.cli .lb{font-size:38px;font-weight:800;color:var(--ink)}
 .cli.on .lb{color:var(--sub);text-decoration:line-through}
+/* 反応の記号はアクセント色に追従させる（属性の var() は効かないので CSS で指定） */
+#mark{fill:var(--accent)}
+#sparks .sp{fill:var(--accent)}
+#sparks .sp:nth-child(2){fill:var(--accent2)}
+
 #handle{position:absolute;left:56px;bottom:96px;font-size:26px;font-weight:800;color:var(--accent);letter-spacing:.02em}
 </style></head><body>
 <div id="stage">
+<div id="cam">
   <div class="blob" id="b1"></div><div class="blob" id="b2"></div><div class="blob" id="b3"></div>
   <div id="grain"></div>
   <div id="dots"></div>
@@ -86,32 +146,82 @@ body{font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;-webkit-font-smoot
     </svg>
     <div id="cards" style="display:none"></div>
     <div id="checklist" style="display:none"></div>
+
+    <div id="phone"><div class="ph"><div class="phlist"></div></div></div>
+    <div id="cal"><div class="calgrid"></div></div>
+    <div id="flowbox">
+      <div class="fbox" id="fbA"></div>
+      <div class="farrow" id="fbArrow">→</div>
+      <div class="fbox hi" id="fbB"></div>
+    </div>
+    <div id="babox">
+      <div class="bapanel" id="baBefore"><span class="tag">まえ</span><span class="txt"></span></div>
+      <div class="bapanel hi" id="baAfter"><span class="tag">あと</span><span class="txt"></span></div>
+    </div>
   </div>
 
   <div id="char">
-    <svg width="300" height="330" viewBox="0 0 300 330">
+    <svg width="330" height="350" viewBox="-15 -10 330 350">
       <ellipse id="shadow" cx="150" cy="316" rx="82" ry="12" fill="#1C1E21" opacity=".1"/>
-      <g id="body">
-        <path d="M150 300 C96 300 78 264 84 224 C90 186 116 168 150 168 C184 168 210 186 216 224 C222 264 204 300 150 300 Z" fill="#E9E3D8" stroke="#1C1E21" stroke-width="5"/>
-        <g id="armL"><path d="M92 216 C64 226 54 248 58 266" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/></g>
-        <g id="armR"><path d="M208 216 C236 226 246 248 242 266" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/></g>
+      <g id="charBody">
+        <g id="body">
+          <path d="M150 300 C96 300 78 264 84 224 C90 186 116 168 150 168 C184 168 210 186 216 224 C222 264 204 300 150 300 Z" fill="#E9E3D8" stroke="#1C1E21" stroke-width="5"/>
+          <g id="armL"><path d="M92 216 C64 226 54 248 58 266" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/></g>
+          <g id="armR"><path d="M208 216 C236 226 246 248 242 266" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/></g>
+        </g>
+        <g id="head">
+          <path d="M150 32 C110 32 84 62 84 102 C84 142 112 168 150 168 C188 168 216 142 216 102 C216 62 190 32 150 32 Z" fill="#FBF7F0" stroke="#1C1E21" stroke-width="5"/>
+          <path d="M120 40 C128 22 150 16 164 26" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/>
+
+          <!-- 眉。上下と傾きで表情の大半が決まる -->
+          <path id="browL" d="M112 82 Q126 74 140 82" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round" opacity="0"/>
+          <path id="browR" d="M160 82 Q174 74 188 82" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round" opacity="0"/>
+
+          <!-- 目。開いた目・閉じた目・きらめきを重ねて切り替える -->
+          <g id="eyeGL">
+            <ellipse id="eyeL" cx="126" cy="106" rx="8" ry="10" fill="#1C1E21"/>
+            <circle id="glintL" cx="129" cy="102" r="2.6" fill="#FBF7F0" opacity="0"/>
+          </g>
+          <g id="eyeGR">
+            <ellipse id="eyeR" cx="174" cy="106" rx="8" ry="10" fill="#1C1E21"/>
+            <circle id="glintR" cx="177" cy="102" r="2.6" fill="#FBF7F0" opacity="0"/>
+          </g>
+          <path id="eyeLc" d="M116 108 Q126 96 136 108" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round" opacity="0"/>
+          <path id="eyeRc" d="M164 108 Q174 96 184 108" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round" opacity="0"/>
+
+          <!-- 口。線の口と、開いた口を切り替える -->
+          <path id="mouth" d="M138 132 Q150 142 162 132" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/>
+          <ellipse id="mouthO" cx="150" cy="136" rx="11" ry="14" fill="#1C1E21" opacity="0"/>
+
+          <ellipse id="cheekL" cx="107" cy="124" rx="11" ry="7" fill="#F0B9A6" opacity=".75"/>
+          <ellipse id="cheekR" cx="193" cy="124" rx="11" ry="7" fill="#F0B9A6" opacity=".75"/>
+        </g>
+
+        <!-- 反応の記号。文字で説明せずに気分を出す -->
+        <g id="fx">
+          <text id="mark" x="232" y="52" font-size="58" font-weight="900" fill="var(--accent)" opacity="0">!</text>
+          <path id="sweat" d="M226 88 C226 78 234 70 234 70 C234 70 242 78 242 88 A8 9 0 0 1 226 88 Z" fill="#7FC7E8" stroke="#1C1E21" stroke-width="3" opacity="0"/>
+          <g id="sparks" opacity="0">
+            <path class="sp" d="M64 60 l5 13 13 5 -13 5 -5 13 -5 -13 -13 -5 13 -5 z" fill="var(--accent)"/>
+            <path class="sp" d="M244 132 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 z" fill="var(--accent2)"/>
+            <path class="sp" d="M92 152 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z" fill="var(--accent)"/>
+          </g>
+        </g>
       </g>
-      <g id="head">
-        <path d="M150 32 C110 32 84 62 84 102 C84 142 112 168 150 168 C188 168 216 142 216 102 C216 62 190 32 150 32 Z" fill="#FBF7F0" stroke="#1C1E21" stroke-width="5"/>
-        <path d="M120 40 C128 22 150 16 164 26" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/>
-        <ellipse id="eyeL" cx="126" cy="106" rx="8" ry="10" fill="#1C1E21"/>
-        <ellipse id="eyeR" cx="174" cy="106" rx="8" ry="10" fill="#1C1E21"/>
-        <path id="mouth" d="M138 132 Q150 142 162 132" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/>
-        <ellipse cx="107" cy="124" rx="11" ry="7" fill="#F0B9A6" opacity=".75"/>
-        <ellipse cx="193" cy="124" rx="11" ry="7" fill="#F0B9A6" opacity=".75"/>
-      </g>
-      <text id="mark" x="236" y="54" font-size="56" font-weight="900" fill="#D6583A" opacity="0">!</text>
     </svg>
   </div>
 
   <div id="pop"><span id="poptext"></span></div>
   <div id="telop"><div id="telopbar"><p id="telopline"></p></div></div>
   <div id="handle">@gude_aiai</div>
+</div>
+  <div id="trans">
+    <div id="trFull"></div>
+    <div id="trBlocks">
+      <div class="tb"></div><div class="tb"></div><div class="tb"></div>
+      <div class="tb"></div><div class="tb"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -125,6 +235,33 @@ const seg=(t,a,b)=>cl((t-a)/(b-a));
 
 const BEATS = window.__BEATS__;
 const DUR = window.__DUR__;
+const LOOK = window.__LOOK__ || {vars:{},shots:[],grain:.05,blur:48,motion:1};
+
+/* --- 回ごとの見た目を流し込む --- */
+(function applyLook(){
+  const r=document.documentElement;
+  for(const k in (LOOK.vars||{})) r.style.setProperty(k, LOOK.vars[k]);
+  document.getElementById('grain').style.opacity = LOOK.grain;
+  [...document.querySelectorAll('.blob')].forEach(b=>b.style.filter='blur('+LOOK.blur+'px)');
+  if(LOOK.handle) document.getElementById('handle').textContent = LOOK.handle;
+})();
+const MO = LOOK.motion==null ? 1 : LOOK.motion;
+const shotOf = i => (LOOK.shots && LOOK.shots[i]) || {cam:'hold',trans:'fade',telop:'bottom',style:'bar',face:'neutral'};
+
+/* --- 表情。眉の高さと傾き・目の大きさ・口・体の構えの組み合わせで作る --- */
+const FACES={
+  neutral: {browOn:0, eyeR:1, lean:0},
+  think:   {browOn:1, brow:3, browRot:-9, eyeR:.92, eyeDX:6, eyeDY:-2, lean:2.5, arm:5,
+            mouth:'M140 134 Q150 128 162 135', mouthTalk:'M139 133 Q150 141 163 134'},
+  surprise:{browOn:1, brow:-11, browRot:2, eyeR:1.55, open:1, lean:-7, rise:6, arm:14,
+            armUp:14, mark:'!'},
+  happy:   {browOn:1, brow:-5, browRot:7, closed:1, glint:1, spark:1, lean:-1.5, rise:4,
+            arm:13, pose:'cheer', mouth:'M131 129 Q150 153 169 129', mouthFixed:1},
+  confused:{browOn:1, brow:4, browRot:15, eyeR:.86, eyeDY:2, lean:3.5, arm:4, sweat:1, mark:'?',
+            pose:'droop', mouth:'M136 137 Q142 130 149 137 Q156 144 164 134', mouthFixed:1},
+  flat:    {browOn:1, brow:2, browRot:0, eyeR:.8, eyeSquash:.55, lean:0, arm:3,
+            mouth:'M138 136 L162 136', mouthFixed:1}
+};
 
 const dots=document.getElementById('dots');
 BEATS.forEach(()=>{const d=document.createElement('div');d.className='dot';dots.appendChild(d);});
@@ -176,6 +313,55 @@ function seek(t){
 
   dotEls.forEach((d,i)=>d.classList.toggle('on',i<=bi));
 
+  /* ---- カメラ（回のタイプごとに寄り引きが変わる） ---- */
+  const SH=shotOf(bi);
+  const q=cl(local/Math.max(0.001,span));
+  let sc=1, tx=0, ty=0, rot=0;
+  if(SH.cam==='push')       { sc=1+0.055*MO*E.inOut(q); }
+  else if(SH.cam==='pull')  { sc=1+0.070*MO*(1-E.inOut(q)); }
+  else if(SH.cam==='punch') { sc=1+0.105*MO*(1-E.out(cl(local/0.55)))+0.014*MO*E.inOut(q); }
+  else if(SH.cam==='driftL'){ sc=1.05; tx=-20*MO*E.inOut(q); }
+  else if(SH.cam==='driftR'){ sc=1.05; tx= 20*MO*E.inOut(q); }
+  else if(SH.cam==='tilt')  { sc=1.045; rot=-1.3*MO*E.inOut(q); ty=-6*MO*E.inOut(q); }
+  else                      { sc=1+0.012*MO*E.inOut(q); }
+  document.getElementById('cam').style.transform=
+    'translate('+tx+'px,'+ty+'px) scale('+sc+') rotate('+rot+'deg)';
+
+  /* ---- 転換（ビートの変わり目） ---- */
+  const TR=0.36, trp=cl(local/TR);
+  const full=document.getElementById('trFull'), blocks=document.getElementById('trBlocks');
+  full.style.opacity=0; blocks.style.opacity=0;
+  const bgv=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  if(trp<1){
+    if(SH.trans==='blocks'){
+      blocks.style.opacity=1;
+      [...blocks.children].forEach((el,i)=>{
+        const p=E.out(cl((trp-i*0.09)/0.62));
+        el.style.transform='translateY('+(-100*p)+'%)';
+      });
+    } else {
+      full.style.opacity=1;
+      if(SH.trans==='flash'){
+        full.style.background=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+        full.style.transform='none';
+        full.style.opacity=Math.pow(1-trp,2.2)*0.8;
+      } else {
+        full.style.background=bgv;
+        const p=E.out(trp);
+        if(SH.trans==='wipeUp')        full.style.transform='translateY('+(-100*p)+'%)';
+        else if(SH.trans==='wipeDown') full.style.transform='translateY('+( 100*p)+'%)';
+        else if(SH.trans==='wipeSide') full.style.transform='translateX('+( 100*p)+'%)';
+        else { full.style.transform='none'; full.style.opacity=1-E.out(trp); }
+      }
+    }
+  }
+
+  /* ---- テロップの置き場所と見せ方 ---- */
+  const telopEl=document.getElementById('telop');
+  telopEl.className='pos-'+(SH.telop||'bottom')+' st-'+(SH.style||'bar');
+  // キーワードのポップはキャラの上。テロップが上に来る回だけ下に逃がす
+  document.getElementById('pop').style.top = (SH.telop==='top') ? '700px' : '300px';
+
   if(bi!==lastBeat){
     chars=buildTelop(b.telop, b.hiText);
     if(b.bars) buildBars(b.bars);
@@ -187,6 +373,27 @@ function seek(t){
         d.querySelector('.ct').textContent=it.label; d.querySelector('.cv').textContent=it.value;
         box.appendChild(d);
       });
+    }
+    if(b.prop==='phone' && b.items){
+      const box=document.querySelector('.phlist'); box.innerHTML='';
+      b.items.forEach((it,i)=>{
+        const d=document.createElement('div');
+        d.className='phrow'+((it.hi||b.hiIndex===i)?' hi':'');
+        d.textContent=(typeof it==='string'?it:it.label);
+        box.appendChild(d);
+      });
+    }
+    if(b.prop==='calendar'){
+      const g=document.querySelector('.calgrid'); g.innerHTML='';
+      for(let i=0;i<28;i++){const d=document.createElement('div');d.className='cday';g.appendChild(d);}
+    }
+    if(b.prop==='flow'){
+      document.getElementById('fbA').textContent=b.from||'';
+      document.getElementById('fbB').textContent=b.to||'';
+    }
+    if(b.prop==='ba'){
+      document.querySelector('#baBefore .txt').textContent=b.before||'';
+      document.querySelector('#baAfter .txt').textContent=b.after||'';
     }
     if(b.prop==='checklist' && b.items){
       const box=document.getElementById('checklist'); box.innerHTML='';
@@ -214,27 +421,99 @@ function seek(t){
   const bob=Math.sin(t*2.1)*7;
   const hop=(local<0.5)?Math.sin(seg(local,0,0.5)*Math.PI)*20:0;
   const sq=1+Math.sin(t*2.1)*0.02;
-  // 見せ物があるときはキャラを右下に寄せて小さくする
-  const asideT = b.prop ? E.out(seg(local,0.1,0.6)) : 1-E.out(seg(local,0.1,0.5));
-  const aside = b.prop ? asideT : 0;
-  const cx = 0 + aside*196, cy = 0 + aside*172, cs = 1 - aside*0.48;
+  // 見せ物があるとき／テロップが画面中央に来るときは、キャラを右下に寄せて小さくする
+  const needAside = !!b.prop || SH.telop==='mid' || b.count!=null || !!b.bars;
+  const asideT = needAside ? E.out(seg(local,0.1,0.6)) : 1-E.out(seg(local,0.1,0.5));
+  const aside = needAside ? asideT : 0;
+  const cx = 0 + aside*188, cy = 0 + aside*138, cs = 1 - aside*0.38;
   document.getElementById('char').style.transform=
     'translate(-50%,0) translate('+cx+'px,'+(cy+bob-hop)+'px) scale('+cs+') scaleY('+sq+') scaleX('+(2-sq)+')';
   document.getElementById('shadow').setAttribute('rx', 82-(hop*0.9));
   document.getElementById('shadow').setAttribute('opacity', 0.10-hop*0.0022);
 
+  /* ---- 表情。ビートの内容に合わせて顔と体の構えが変わる ---- */
+  const F = FACES[b.face || SH.face] || FACES.neutral;
+  const fk = E.out(seg(local, 0.05, 0.45));            // 表情の入り
+  const react = Math.sin(cl(local/0.7)*Math.PI);       // ビート頭の反応のふくらみ
+
+  // 眉
+  const browOn = F.browOn ? fk : 0;
+  const bY = (F.brow||0)*fk, bR = (F.browRot||0)*fk;
+  const bL=document.getElementById('browL'), bR2=document.getElementById('browR');
+  bL.setAttribute('opacity', browOn);
+  bR2.setAttribute('opacity', browOn);
+  bL.style.transformOrigin='126px 82px';
+  bR2.style.transformOrigin='174px 82px';
+  bL.style.transform ='translateY('+bY+'px) rotate('+(-bR)+'deg)';
+  bR2.style.transform='translateY('+bY+'px) rotate('+bR+'deg)';
+
+  // 目。閉じ目のときは開いた目を隠す
+  const closed = F.closed ? fk : 0;
   const bp=(t%3.4);
-  const blink=(bp>3.15)?Math.abs(Math.sin((bp-3.15)/0.25*Math.PI)):0;
-  document.getElementById('eyeL').setAttribute('ry',10-9.2*blink);
-  document.getElementById('eyeR').setAttribute('ry',10-9.2*blink);
+  const blink=(closed>0.5||F.open)?0:((bp>3.15)?Math.abs(Math.sin((bp-3.15)/0.25*Math.PI)):0);
+  const er = (F.eyeR==null?1:F.eyeR);
+  const ry = (10*(1+(er-1)*fk))*(1-0.92*blink)*(F.eyeSquash?(1-(1-F.eyeSquash)*fk):1);
+  const rx = 8*(1+(er-1)*fk*0.8);
+  const edx=(F.eyeDX||0)*fk, edy=(F.eyeDY||0)*fk;
+  ['L','R'].forEach(sfx=>{
+    const e=document.getElementById('eye'+sfx);
+    e.setAttribute('ry',ry); e.setAttribute('rx',rx);
+    e.setAttribute('cx',(sfx==='L'?126:174)+edx);
+    e.setAttribute('cy',106+edy);
+    document.getElementById('eyeG'+sfx).setAttribute('opacity',1-closed);
+    document.getElementById('eye'+sfx+'c').setAttribute('opacity',closed);
+    document.getElementById('glint'+sfx).setAttribute('opacity',(F.glint?fk:0)*(1-closed));
+  });
 
-  const sw=Math.sin(t*1.7)*9;
+  // 腕。表情でポーズが変わり、見せ物が出ているときはそちらを指す
+  const armAmp = F.arm==null ? 9 : F.arm;
+  const sw=Math.sin(t*1.7)*armAmp*(0.6+0.4*MO);
   const aL=document.getElementById('armL'), aR=document.getElementById('armR');
-  aL.style.transformOrigin='92px 216px'; aL.style.transform='rotate('+(-sw)+'deg)';
-  aR.style.transformOrigin='208px 216px'; aR.style.transform='rotate('+sw+'deg)';
+  const armUp=(F.armUp||0)*fk;
+  const ARMS={
+    normal:{L:'M92 216 C64 226 54 248 58 266',  R:'M208 216 C236 226 246 248 242 266'},
+    point: {L:'M92 216 C66 228 58 250 62 268',  R:'M208 212 C244 200 268 186 292 174'},
+    droop: {L:'M92 218 C74 240 70 262 74 280',  R:'M208 218 C226 240 230 262 226 280'},
+    cheer: {L:'M92 212 C64 194 52 172 50 148',  R:'M208 212 C236 194 248 172 250 148'}
+  };
+  // 見せ物が出ていて、驚いても困ってもいないときは指差す
+  let pose = F.pose || 'normal';
+  if(pose==='normal' && !!b.prop && (F===FACES.neutral||F===FACES.think)) pose='point';
+  const armSet = ARMS[pose]||ARMS.normal;
+  aL.querySelector('path').setAttribute('d', armSet.L);
+  aR.querySelector('path').setAttribute('d', armSet.R);
+  const swing = (pose==='normal') ? sw : sw*0.25;
+  aL.style.transformOrigin='92px 216px'; aL.style.transform='rotate('+(-swing-armUp)+'deg)';
+  aR.style.transformOrigin='208px 216px'; aR.style.transform='rotate('+(swing+armUp)+'deg)';
 
-  const talking=Math.abs(Math.sin(t*7))>0.5 && local<Math.min(1.8,span);
-  document.getElementById('mouth').setAttribute('d', talking?'M136 130 Q150 148 164 130':'M138 132 Q150 142 162 132');
+  // 口。開いた口の顔以外は、話しているあいだ少しだけ動かす
+  const mo=document.getElementById('mouthO'), mth=document.getElementById('mouth');
+  if(F.open){
+    mo.setAttribute('opacity',fk);
+    mo.setAttribute('ry',14*(0.7+0.3*react));
+    mth.setAttribute('opacity',1-fk);
+  } else {
+    mo.setAttribute('opacity',0); mth.setAttribute('opacity',1);
+    const talking=Math.abs(Math.sin(t*7))>0.5 && local<Math.min(1.8,span);
+    const base=F.mouth||'M138 132 Q150 142 162 132';
+    mth.setAttribute('d', (talking && !F.mouthFixed) ? (F.mouthTalk||'M136 130 Q150 148 164 130') : base);
+  }
+
+  // 反応の記号
+  const mk=document.getElementById('mark');
+  if(F.mark){ mk.textContent=F.mark; mk.setAttribute('opacity', Math.min(1,seg(local,0.18,0.45))*(1-seg(local,span-0.5,span))); }
+  else mk.setAttribute('opacity',0);
+  document.getElementById('sweat').setAttribute('opacity', F.sweat?Math.min(1,seg(local,0.3,0.7))*(1-seg(local,span-0.5,span)):0);
+  const sp=document.getElementById('sparks');
+  sp.setAttribute('opacity', F.spark?Math.min(1,seg(local,0.25,0.55))*(1-seg(local,span-0.6,span)):0);
+  sp.style.transformOrigin='150px 100px';
+  sp.style.transform='scale('+(0.7+0.3*E.outBack(seg(local,0.25,0.8)))+') rotate('+(Math.sin(t*2.2)*4)+'deg)';
+
+  // 体の構え
+  const lean=(F.lean||0)*fk;
+  const cb=document.getElementById('charBody');
+  cb.style.transformOrigin='150px 300px';
+  cb.style.transform='rotate('+lean+'deg) translateY('+(-(F.rise||0)*react)+'px)';
 
   const pop=document.getElementById('pop');
   if(b.key){
@@ -242,8 +521,7 @@ function seek(t){
     const pp=E.outBack(seg(local,0.35,0.95));
     pop.style.opacity=Math.min(1,seg(local,0.35,0.6))*(1-seg(local,span-0.4,span));
     pop.style.transform='translateY('+((1-pp)*22)+'px) scale('+(0.7+0.3*pp)+')';
-    document.getElementById('mark').setAttribute('opacity', Math.min(1,seg(local,0.4,0.8)));
-  } else { pop.style.opacity=0; document.getElementById('mark').setAttribute('opacity',0); }
+  } else pop.style.opacity=0;
 
   if(b.bars){
     barsBox.style.opacity=E.out(seg(local,0.2,0.6));
@@ -257,8 +535,12 @@ function seek(t){
   const propBox=document.getElementById('prop');
   const tlEl=document.getElementById('tl'), swEl=document.getElementById('sw');
   const cardsEl=document.getElementById('cards'), clEl=document.getElementById('checklist');
+  const phEl=document.getElementById('phone'), calEl=document.getElementById('cal');
+  const flEl=document.getElementById('flowbox'), baEl=document.getElementById('babox');
   tlEl.style.display='none'; swEl.style.display='none';
   cardsEl.style.display='none'; clEl.style.display='none';
+  phEl.style.display='none'; calEl.style.display='none';
+  flEl.style.display='none'; baEl.style.display='none';
   if(b.prop){
     const pin=E.outBack(seg(local,0.15,0.75));
     const pout=1-seg(local,span-0.35,span);
@@ -300,6 +582,59 @@ function seek(t){
         el.style.opacity=p; el.style.transform='translateX('+((1-p)*-24)+'px)';
         el.classList.toggle('on', local > 0.9+i*0.42);
       });
+
+    } else if(b.prop==='phone'){
+      // 画面が実際にスクロールして、目当ての行が真ん中で止まる
+      phEl.style.display='flex';
+      const list=document.querySelector('.phlist');
+      const rows=[...list.children];
+      const hiIdx=rows.findIndex(r=>r.classList.contains('hi'));
+      const target=(hiIdx<0?0:hiIdx)*70;
+      const p=E.inOut(seg(local,0.35,1.9));
+      list.style.transform='translateY('+(60 - target*p)+'px)';
+      rows.forEach((r,i)=>{
+        const near = hiIdx>=0 && i===hiIdx ? E.outBack(seg(local,1.5,2.2)) : 0;
+        r.style.transform='scale('+(1+0.06*near)+')';
+        r.style.opacity=Math.min(1,seg(local,0.3+i*0.06,0.6+i*0.06));
+      });
+
+    } else if(b.prop==='calendar'){
+      // 日が順に埋まる。積み上がりを時間として見せる
+      calEl.style.display='flex';
+      const days=[...document.querySelectorAll('.cday')];
+      const n=Math.min(days.length, b.fill==null?days.length:b.fill);
+      days.forEach((d,i)=>{
+        const on = i<n && local > 0.35 + i*0.055;
+        d.classList.toggle('on', on);
+        d.classList.toggle('hi', on && b.hiDays && b.hiDays.indexOf(i)>=0);
+        const p=on?E.outBack(cl((local-(0.35+i*0.055))/0.28)):0;
+        d.style.transform='scale('+(0.72+0.28*(on?p:1))+')';
+        d.style.opacity= on ? 1 : 0.42;
+      });
+
+    } else if(b.prop==='flow'){
+      // 手作業 → 自動 の矢印が実際に伸びる
+      flEl.style.display='flex';
+      const a=document.getElementById('fbA'), ar=document.getElementById('fbArrow'), bb=document.getElementById('fbB');
+      const pa=E.outBack(seg(local,0.25,0.85));
+      a.style.opacity=Math.min(1,seg(local,0.25,0.5));
+      a.style.transform='translateX('+((1-pa)*-26)+'px) scale('+(0.86+0.14*pa)+')';
+      const par=E.out(seg(local,0.8,1.5));
+      ar.style.opacity=par; ar.style.transform='scaleX('+(0.2+0.8*par)+')';
+      const pb=E.outBack(seg(local,1.35,2.0));
+      bb.style.opacity=Math.min(1,seg(local,1.35,1.6));
+      bb.style.transform='translateX('+((1-pb)*26)+'px) scale('+(0.86+0.14*pb)+')';
+
+    } else if(b.prop==='ba'){
+      // 前と後を上下に並べ、後だけ遅れて出す
+      baEl.style.display='flex';
+      const bf=document.getElementById('baBefore'), af=document.getElementById('baAfter');
+      const p1=E.outBack(seg(local,0.25,0.9));
+      bf.style.opacity=Math.min(1,seg(local,0.25,0.5));
+      bf.style.transform='translateX('+((1-p1)*-40)+'px)';
+      const p2=E.outBack(seg(local,1.1,1.8));
+      af.style.opacity=Math.min(1,seg(local,1.1,1.35));
+      af.style.transform='translateX('+((1-p2)*40)+'px) scale('+(0.92+0.08*p2)+')';
     }
   } else propBox.style.opacity=0;
 
