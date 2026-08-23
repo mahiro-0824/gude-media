@@ -169,6 +169,7 @@ body{font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;-webkit-font-smoot
           <g id="armL"><path d="M92 216 C64 226 54 248 58 266" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/></g>
           <g id="armR"><path d="M208 216 C236 226 246 248 242 266" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/></g>
         </g>
+        <g id="earG"></g>
         <g id="head">
           <path d="M150 32 C110 32 84 62 84 102 C84 142 112 168 150 168 C188 168 216 142 216 102 C216 62 190 32 150 32 Z" fill="#FBF7F0" stroke="#1C1E21" stroke-width="5"/>
           <path d="M120 40 C128 22 150 16 164 26" fill="none" stroke="#1C1E21" stroke-width="5" stroke-linecap="round"/>
@@ -196,6 +197,7 @@ body{font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;-webkit-font-smoot
           <ellipse id="cheekL" cx="107" cy="124" rx="11" ry="7" fill="#F0B9A6" opacity=".75"/>
           <ellipse id="cheekR" cx="193" cy="124" rx="11" ry="7" fill="#F0B9A6" opacity=".75"/>
         </g>
+        <g id="accG"></g>
 
         <!-- 反応の記号。文字で説明せずに気分を出す -->
         <g id="fx">
@@ -246,6 +248,48 @@ const LOOK = window.__LOOK__ || {vars:{},shots:[],grain:.05,blur:48,motion:1};
   if(LOOK.handle) document.getElementById('handle').textContent = LOOK.handle;
 })();
 const MO = LOOK.motion==null ? 1 : LOOK.motion;
+
+/* --- キャラの変種。頭の形・耳・小物・配色を LOOK.char から一度だけ当てる --- */
+(function(){
+  const C = LOOK.char; if(!C) return;
+  const INK = '#1C1E21';
+  const headPath = document.querySelector('#head > path');
+  if(C.headD) headPath.setAttribute('d', C.headD);
+  if(C.headFill){
+    headPath.setAttribute('fill', C.headFill);
+    document.getElementById('glintL').setAttribute('fill', C.headFill);
+    document.getElementById('glintR').setAttribute('fill', C.headFill);
+  }
+  if(C.bodyFill) document.querySelector('#body > path').setAttribute('fill', C.bodyFill);
+  if(C.cheek){
+    document.getElementById('cheekL').setAttribute('fill', C.cheek);
+    document.getElementById('cheekR').setAttribute('fill', C.cheek);
+  }
+  const hf = C.headFill || '#FBF7F0';
+  const EARS = {
+    none: '',
+    cat: '<path d="M108 56 L98 16 L138 40 Z" fill="'+hf+'" stroke="'+INK+'" stroke-width="5" stroke-linejoin="round"/>'
+       + '<path d="M192 56 L202 16 L162 40 Z" fill="'+hf+'" stroke="'+INK+'" stroke-width="5" stroke-linejoin="round"/>',
+    round: '<circle cx="92" cy="68" r="22" fill="'+hf+'" stroke="'+INK+'" stroke-width="5"/>'
+         + '<circle cx="208" cy="68" r="22" fill="'+hf+'" stroke="'+INK+'" stroke-width="5"/>',
+    tuft: '<path d="M152 32 C152 8 174 2 182 16" fill="none" stroke="'+INK+'" stroke-width="5" stroke-linecap="round"/>',
+    antenna: '<path d="M150 32 L150 12" stroke="'+INK+'" stroke-width="5" stroke-linecap="round"/>'
+           + '<circle cx="150" cy="6" r="7" fill="var(--accent)" stroke="'+INK+'" stroke-width="4"/>'
+  };
+  const ACCS = {
+    none: '',
+    scarf: '<path d="M100 158 Q150 182 200 158 L200 182 Q150 206 100 182 Z" fill="var(--accent)" stroke="'+INK+'" stroke-width="5" stroke-linejoin="round"/>',
+    glasses: '<g fill="none" stroke="'+INK+'" stroke-width="4.5"><circle cx="126" cy="106" r="18"/><circle cx="174" cy="106" r="18"/><path d="M144 106 L156 106"/></g>',
+    cap: '<path d="M88 70 C88 40 114 26 150 26 C186 26 212 40 212 70 Z" fill="var(--accent)" stroke="'+INK+'" stroke-width="5" stroke-linejoin="round"/>'
+       + '<path d="M80 70 L228 70" stroke="'+INK+'" stroke-width="5" stroke-linecap="round"/>',
+    bowtie: '<path d="M150 176 L120 161 L120 191 Z" fill="var(--accent)" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>'
+          + '<path d="M150 176 L180 161 L180 191 Z" fill="var(--accent)" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>'
+          + '<circle cx="150" cy="176" r="7" fill="var(--accent)" stroke="'+INK+'" stroke-width="4"/>'
+  };
+  document.getElementById('earG').innerHTML = EARS[C.ear] || '';
+  document.getElementById('accG').innerHTML = ACCS[C.acc] || '';
+})();
+
 const shotOf = i => (LOOK.shots && LOOK.shots[i]) || {cam:'hold',trans:'fade',telop:'bottom',style:'bar',face:'neutral'};
 
 /* --- 表情。眉の高さと傾き・目の大きさ・口・体の構えの組み合わせで作る --- */
