@@ -256,6 +256,50 @@ def _variant(table, key, i, s):
     return opts[(s // (i + 3)) % len(opts)]
 
 
+# ---------------------------------------------------------------- キャラの変化
+#
+# 同じ絵柄（線の太さ・省略の度合い）は保ったまま、頭の形・耳・小物・配色だけを
+# seed（＝その日の日付）から引き直す。毎回ちがう子が出てくるが、
+# アカウントとしての絵の作法は変わらない。
+
+CHAR_HEADS = {
+    "round":  "M150 32 C110 32 84 62 84 102 C84 142 112 168 150 168 C188 168 216 142 216 102 C216 62 190 32 150 32 Z",
+    "egg":    "M150 28 C114 28 88 66 88 108 C88 145 114 168 150 168 C186 168 212 145 212 108 C212 66 186 28 150 28 Z",
+    "wide":   "M150 38 C102 38 78 66 78 103 C78 143 108 166 150 166 C192 166 222 143 222 103 C222 66 198 38 150 38 Z",
+    "square": "M150 32 C112 32 86 48 86 86 L86 116 C86 152 112 168 150 168 C188 168 214 152 214 116 L214 86 C214 48 188 32 150 32 Z",
+}
+CHAR_EARS = ["none", "cat", "round", "tuft", "antenna"]
+CHAR_ACCS = ["none", "scarf", "glasses", "cap", "bowtie"]
+
+# (頭の色, 体の色, ほおの色)
+CHAR_PALETTES = [
+    ("#FBF7F0", "#E9E3D8", "#F0B9A6"),
+    ("#FFF4E6", "#F2DCBE", "#E9A48C"),
+    ("#F3F6FA", "#DBE3EC", "#EFA9B8"),
+    ("#FDF3F3", "#EFD9D9", "#E8908F"),
+    ("#F2F7F2", "#DAE6DA", "#EDA98E"),
+    ("#F7F2FA", "#E3D9EC", "#E7A2BE"),
+]
+
+
+def _draw(seq, seed, salt):
+    """seed と用途名から、系列の中身をひとつ引く。用途ごとに独立して散る。"""
+    h = int(hashlib.sha256(("%d/%s" % (seed, salt)).encode()).hexdigest()[:8], 16)
+    return seq[h % len(seq)]
+
+
+def build_char(seed):
+    head = _draw(list(CHAR_HEADS.keys()), seed, "head")
+    ear = _draw(CHAR_EARS, seed, "ear")
+    acc = _draw(CHAR_ACCS, seed, "acc")
+    pal = _draw(CHAR_PALETTES, seed, "pal")
+    # 帽子と耳は同時に出すと潰し合うので、帽子が勝つ
+    if acc == "cap":
+        ear = "none"
+    return dict(head=head, headD=CHAR_HEADS[head], ear=ear, acc=acc,
+                headFill=pal[0], bodyFill=pal[1], cheek=pal[2])
+
+
 def build_look(brand, mood, arc, seed, n_beats, beats=None):
     """ブランド・ムード・回タイプ・seed から、絵と展開の設計を返す。"""
     B = BRANDS[brand]
@@ -338,6 +382,7 @@ def build_look(brand, mood, arc, seed, n_beats, beats=None):
         },
         grain=M["grain"], blur=M["blur"], motion=M["motion"],
         shots=shots,
+        char=build_char(s),
         suggested_props=A["props"],
         label="%s / %s" % (M["ja"], A["ja"]),
     )
