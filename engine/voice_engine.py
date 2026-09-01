@@ -14,13 +14,8 @@ voice_engine.py — 台本の各ビートを読み上げ、尺から逆算して
   3. **クレジット表記「VOICEVOX:ずんだもん」は必須。** 動画末尾に焼き込む。
      これは無料利用の条件であり、外すことはできない。
 
-使い方:
-
-    from voice_engine import VoiceEngine, layout_beats, build_voice_track
-    ve = VoiceEngine()
-    clips = ve.synth_beats(beats)              # 各ビートの音声と実尺
-    beats, dur = layout_beats(beats, clips)    # t を書き換え、総尺を返す
-    track = build_voice_track(clips, beats, dur)
+通常は `render_with_voice.py` がこのファイルを **subprocess として** 呼ぶ。
+直接叩く場合は末尾の CLI を見ること。
 """
 
 import os
@@ -39,7 +34,7 @@ LEAD_IN = 0.35      # 頭の余白。いきなり喉り出さない
 BEAT_GAP = 0.42     # ビートとビートのあいだ
 TAIL = 1.60         # 末尾の余白。クレジットを出す時間でもある
 
-VOICE_DIR = os.environ.get("GUDE_VOICE_DIR", "/opt/gude-voice")
+VOICE_DIR = os.environ.get("GUDE_VOICE_DIR", "/var/tmp/gude-voice")
 
 
 def _p(*a):
@@ -47,7 +42,7 @@ def _p(*a):
 
 
 class VoiceEngine:
-    """VOICEVOX を1度だけ初期化して使い回す。"""
+    """VOICEVOX を1度だけ初期化して使い回す。常駐 278MB。"""
 
     def __init__(self, style_id=STYLE_ID, speed=1.0, pitch=0.0, intonation=1.12):
         from voicevox_core.blocking import (
@@ -114,7 +109,7 @@ def _resample(x, src, dst):
 def _wav_bytes_to_mono(raw):
     import io
     with wave.open(io.BytesIO(raw), "rb") as w:
-        n, ch, sw = w.getnframes(), w.getnchannels(), w.getsampwidth()
+        n, ch = w.getnframes(), w.getnchannels()
         data = np.frombuffer(w.readframes(n), dtype=np.int16).astype(np.float32) / 32768.0
     if ch > 1:
         data = data.reshape(-1, ch).mean(axis=1)
@@ -181,3 +176,34 @@ def write_wav(path, x, sr=SR):
         w.setsampwidth(2)
         w.setframerate(sr)
         w.writeframes((y * 32767).astype("<i2").tobytes())
+
+
+# ---------------------------------------------------------------------------
+# CLI: 別プロセスで合成して wav とタイミングを吐く
+#
+# 本番のサンドボックスは RAM 985MB しかなく、フレーム描画で既に OOM が出ている。
+# 合成器は 278MB 常駐するので、**同じプロセスで抱えたまま Chromium を起動しない。**
+# 呼び出し側は subprocess で叩き、終わったらメモリごとOSに返させる。
+#
+#   python3 voice_engine.py script.json outdir
+#     → outdir/beat_00.wav ... と outdir/timing.json（各ビートの t と総尺）
+# ---------------------------------------------------------------------------
+
+def synth_to_dir(script_path, outdir):
+    import json
+    os.makedirs(outdir, exist_ok=True)
+    script = json.load(open(script_path, encoding="utf-8"))
+    beats = script["beats"]
+    ve = VoiceEngine()
+    clips = ve.synth_beats(beats)
+    laid, total = layout_beats(beats, clips)
+    for i, (x, _) in enumerate(clips):
+        write_wav(os.path.join(outdir, "beat_%02d.wav" % i), x)
+    json.dump({"duration": total, "t": [b["t"] for b in laid], "sr": SR},
+              open(os.path.join(outdir, "timing.json"), "w"), ensure_ascii=False)
+    return total
+
+
+if __name__ == "__main__":
+    import sys
+    print("%.2f" % synth_to_dir(sys.argv[1], sys.argv[2]))
