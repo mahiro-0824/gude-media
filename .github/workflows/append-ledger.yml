@@ -1,0 +1,46 @@
+name: append-ledger
+
+on:
+  workflow_dispatch:
+    inputs:
+      row:
+        description: 'One CSV row to append to used_sources.csv'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Append row
+        env:
+          ROW: ${{ inputs.row }}
+        run: |
+          python3 - <<'EOF'
+          import os
+          row = os.environ['ROW']
+          with open('used_sources.csv','r+',encoding='utf-8') as f:
+              data = f.read()
+              if not data.endswith('\n'):
+                  data += '\n'
+              if row.rstrip('\n') in data:
+                  print('row already present; skipping')
+              else:
+                  data += row.rstrip('\n') + '\n'
+              f.seek(0); f.write(data); f.truncate()
+          EOF
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- used_sources.csv; then
+            echo 'no change'
+            exit 0
+          fi
+          git add used_sources.csv
+          git commit -m 'chore: append ledger row'
+          git push
